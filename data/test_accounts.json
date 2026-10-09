@@ -1,0 +1,16 @@
+[
+  {
+    "account_number": "10000001",
+    "pin": "1234",
+    "holder_name": "Juan Pérez",
+    "balance": 1000,
+    "status": "active"
+  },
+  {
+    "account_number": "10000002",
+    "pin": "5678",
+    "holder_name": "María González",
+    "balance": 6900,
+    "status": "active"
+  }
+]

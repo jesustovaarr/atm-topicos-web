@@ -181,6 +181,7 @@ class AtmController {
   getStatus(req, res) {
     res.status(200).json({
       nodeName: config.nodeName,
+      location: config.location,
       type: 'atm',
       cashAvailableLocal: cashService.getCashAvailable(),
       bankConfigured: Boolean(bankService.apiKey && bankService.centralBankUrl)

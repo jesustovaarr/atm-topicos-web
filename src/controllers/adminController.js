@@ -20,6 +20,7 @@ class AdminController {
     res.status(200).json({
       success: true,
       nodeName: config.nodeName,
+      location: config.location,
       centralBankUrl: bankConf.centralBankUrl,
       hasApiKey: bankConf.hasApiKey,
       maskedApiKey: bankConf.maskedApiKey,
