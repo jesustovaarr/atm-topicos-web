@@ -24,4 +24,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Rutas de la API interna del cajero
+app.use('/api', require('./routes/api'));
+
 module.exports = app;
