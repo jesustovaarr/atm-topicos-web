@@ -1,0 +1,820 @@
+:root {
+  --kiosk-bg: #eceff3;
+  --surface-panel: #ffffff;
+  --surface-muted: #f4f6f9;
+  
+  --border-light: #d8dee8;
+  --border-active: #0f2d59;
+
+  --text-dark: #111827;
+  --text-muted: #4b5563;
+  --text-subtle: #6b7280;
+
+  --bank-blue: #0f2d59;
+  --bank-blue-hover: #1b3d6f;
+  --bank-accent: #0284c7;
+
+  --success: #047857;
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+
+  --danger: #b91c1c;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-kiosk: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-touch: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: var(--kiosk-bg);
+  color: var(--text-dark);
+  font-family: var(--font-main);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Contenedor */
+.kiosk-viewport {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* BARRA SUPERIOR */
+
+.kiosk-topbar {
+  height: 60px;
+  background: var(--surface-panel);
+  border-bottom: 2px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  flex-shrink: 0;
+}
+
+.kiosk-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bank-symbol {
+  width: 34px;
+  height: 34px;
+  background: var(--bank-blue);
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bank-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--bank-blue);
+}
+
+.terminal-id {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  font-weight: 500;
+  display: block;
+}
+
+.kiosk-top-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.kiosk-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.kiosk-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--success);
+}
+
+.kiosk-clock {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.kiosk-admin-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-light);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+}
+
+.kiosk-admin-link:hover {
+  background: #e2e8f0;
+  color: var(--text-dark);
+}
+
+/* PANTALLA TÁCTIL PRINCIPAL */
+
+.kiosk-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+.kiosk-view {
+  display: none;
+  flex: 1;
+  width: 100%;
+}
+
+.kiosk-view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* PANTALLA DE ACCESO / PINPAD */
+
+.kiosk-center-stage {
+  margin: auto;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.prompt-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.prompt-header h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+  margin-bottom: 4px;
+}
+
+.prompt-header p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.atm-keypad-panel {
+  width: 100%;
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-kiosk);
+}
+
+.display-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface-muted);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  transition: border-color 0.15s;
+}
+
+.input-row:focus-within {
+  border-color: var(--bank-blue);
+  background: #ffffff;
+}
+
+.input-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 60px;
+}
+
+.kiosk-input {
+  flex: 1;
+  height: 48px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 1.05rem;
+  font-family: var(--font-main);
+  color: var(--text-dark);
+}
+
+.pin-display {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  letter-spacing: 12px;
+  text-align: center;
+}
+
+/* Teclado Táctil */
+.touch-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.touch-key {
+  height: 56px;
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  cursor: pointer;
+  box-shadow: var(--shadow-touch);
+  transition: all 0.1s ease;
+}
+
+.touch-key:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.touch-key:active {
+  background: #e2e8f0;
+  transform: translateY(2px);
+}
+
+.key-danger {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+  font-size: 0.95rem;
+}
+
+.key-danger:hover {
+  background: #fee2e2;
+}
+
+.key-confirm {
+  background: var(--bank-blue);
+  border-color: var(--bank-blue);
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.key-confirm:hover {
+  background: var(--bank-blue-hover);
+}
+
+/* MENÚ TÁCTIL PRINCIPAL  */
+
+.kiosk-content-layout {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.client-header-bar {
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.client-sub {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-subtle);
+}
+
+.client-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+}
+
+.client-acc {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.header-right-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.balance-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.chip-label {
+  font-size: 0.7rem;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+}
+
+.chip-val {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+}
+
+.btn-touch-danger {
+  height: 44px;
+  padding: 0 16px;
+  background: var(--danger-bg);
+  border: 2px solid var(--danger-border);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-touch-danger:hover {
+  background: #fee2e2;
+}
+
+.kiosk-prompt-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Cuadrícula de Opciones */
+.kiosk-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kiosk-big-btn {
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-kiosk);
+  transition: all 0.15s ease;
+}
+
+.kiosk-big-btn:hover {
+  border-color: var(--bank-blue);
+  background: #f8fafc;
+  transform: translateY(-2px);
+}
+
+.kiosk-big-btn.featured-option {
+  border-color: var(--bank-blue);
+  background: linear-gradient(90deg, #ffffff 0%, #eff6ff 100%);
+}
+
+.big-btn-icon {
+  width: 54px;
+  height: 54px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bank-blue);
+  flex-shrink: 0;
+}
+
+.featured-option .big-btn-icon {
+  background: #dbeafe;
+}
+
+.big-btn-text {
+  flex: 1;
+}
+
+.btn-main-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+  margin-bottom: 2px;
+}
+
+.btn-sub-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.touch-arrow {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+}
+
+/* RETIRO DE EFECTIVO  */
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.section-title-row h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+}
+
+.section-title-row p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.touch-amount-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.btn-touch-amount {
+  height: 84px;
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-kiosk);
+  transition: all 0.15s ease;
+}
+
+.btn-touch-amount:hover {
+  border-color: var(--bank-blue);
+  background: #f8fafc;
+  transform: translateY(-2px);
+}
+
+.btn-touch-amount.demo-highlight {
+  border-color: var(--bank-blue);
+  background: #eff6ff;
+  border-width: 3px;
+}
+
+.demo-tag {
+  font-family: var(--font-main);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--bank-blue);
+  margin-bottom: 2px;
+}
+
+.custom-amount-box {
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.custom-amount-box label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.currency-label {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.btn-touch-primary {
+  height: 48px;
+  padding: 0 24px;
+  background: var(--bank-blue);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn-touch-primary:hover {
+  background: var(--bank-blue-hover);
+}
+
+.btn-touch-default {
+  height: 44px;
+  padding: 0 18px;
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  color: var(--text-dark);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-touch-default:hover {
+  background: var(--surface-muted);
+}
+
+/* DIÁLOGOS: SALDO, RECIBO, LOADING */
+
+.kiosk-dialog-stage {
+  margin: auto;
+  width: 100%;
+  max-width: 520px;
+}
+
+.dialog-card, .receipt-card, .processing-card {
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-kiosk);
+  text-align: center;
+}
+
+.dialog-pretitle {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-subtle);
+  letter-spacing: 0.5px;
+}
+
+.dialog-card h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+  margin: 4px 0 18px;
+}
+
+.amount-hero-box {
+  background: var(--surface-muted);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 28px 20px;
+  margin-bottom: 24px;
+}
+
+.amount-legend {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+}
+
+.amount-digits {
+  font-family: var(--font-mono);
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+  margin: 10px 0;
+}
+
+.status-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+
+.status-tag.active {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.dialog-footer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Recibo */
+.receipt-top {
+  border-bottom: 2px dashed var(--border-light);
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+
+.receipt-icon-circle {
+  width: 48px;
+  height: 48px;
+  background: var(--success-bg);
+  border: 2px solid var(--success-border);
+  color: var(--success);
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.receipt-top h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+}
+
+.receipt-top p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.receipt-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.receipt-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.receipt-item.highlight {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 4px 0;
+}
+
+.text-danger { color: var(--danger); font-size: 1.15rem; }
+.text-success { color: var(--success); font-size: 1.15rem; }
+.font-mono { font-family: var(--font-mono); }
+
+.receipt-sep {
+  height: 1px;
+  border-bottom: 1px dashed var(--border-light);
+  margin: 4px 0;
+}
+
+.receipt-item.sub {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.receipt-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Spinner Touch */
+.touch-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid var(--border-light);
+  border-top-color: var(--bank-blue);
+  border-radius: 50%;
+  animation: spinKiosk 0.7s linear infinite;
+  margin: 0 auto 18px;
+}
+
+@keyframes spinKiosk {
+  to { transform: rotate(360deg); }
+}
+
+.kiosk-alert {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.kiosk-alert.error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+/* BARRA INFERIOR  */
+
+.kiosk-bottombar {
+  height: 44px;
+  background: var(--surface-panel);
+  border-top: 2px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+
+.bottom-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kiosk-status-item strong {
+  color: var(--bank-blue);
+}
+
+.sep {
+  color: var(--border-light);
+}
+
+@media (max-width: 720px) {
+  .touch-amount-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .client-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .header-right-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

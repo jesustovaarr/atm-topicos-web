@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terminal de Autoservicio</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="kiosk-viewport">
+    
+    <!-- Barra Superior -->
+    <header class="kiosk-topbar">
+      <div class="kiosk-brand">
+        <div class="bank-symbol">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <span class="bank-name">BANCO CENTRAL</span>
+          <span class="terminal-id" id="atmNodeName">Cargando terminal...</span>
+        </div>
+      </div>
+
+      <div class="kiosk-top-right">
+        <div class="kiosk-badge" id="networkBadge">
+          <span class="kiosk-dot online"></span>
+          <span id="networkText">OPERATIVO</span>
+        </div>
+        <div class="kiosk-clock" id="liveClock">--:--:--</div>
+        <a href="admin.html" class="kiosk-admin-link" title="Configurar Nodo">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Admin</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Pantalla Táctil de Operación -->
+    <main class="kiosk-screen">
+
+      <!-- IDENTIFICACIÓN  -->
+      <section id="screenWelcome" class="kiosk-view active">
+        <div class="kiosk-center-stage">
+          <div class="prompt-header">
+            <h2>Bienvenido</h2>
+            <p>Ingrese su número de cuenta y confirme con su PIN de seguridad</p>
+          </div>
+
+          <div class="atm-keypad-panel">
+            <div class="display-inputs">
+              <div class="input-row">
+                <span class="input-tag">Cuenta:</span>
+                <input type="text" id="inputAccount" class="kiosk-input" placeholder="Ingrese número de cuenta" maxlength="20" autofocus autocomplete="off">
+              </div>
+
+              <div class="input-row">
+                <span class="input-tag">PIN:</span>
+                <input type="password" id="inputPin" class="kiosk-input pin-display" placeholder="••••" maxlength="4" readonly autocomplete="off">
+              </div>
+            </div>
+
+            <!-- Teclado Numérico del ATM -->
+            <div class="touch-pad">
+              <button type="button" class="touch-key" data-num="1">1</button>
+              <button type="button" class="touch-key" data-num="2">2</button>
+              <button type="button" class="touch-key" data-num="3">3</button>
+              <button type="button" class="touch-key" data-num="4">4</button>
+              <button type="button" class="touch-key" data-num="5">5</button>
+              <button type="button" class="touch-key" data-num="6">6</button>
+              <button type="button" class="touch-key" data-num="7">7</button>
+              <button type="button" class="touch-key" data-num="8">8</button>
+              <button type="button" class="touch-key" data-num="9">9</button>
+              <button type="button" class="touch-key key-danger" id="btnKeyClear">Borrar</button>
+              <button type="button" class="touch-key" data-num="0">0</button>
+              <button type="button" class="touch-key key-confirm" id="btnKeyEnter">Entrar</button>
+            </div>
+
+            <div class="kiosk-alert error" id="loginAlert" style="display: none;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MENÚ TÁCTIL PRINCIPAL -->
+      <section id="screenMenu" class="kiosk-view">
+        <div class="kiosk-content-layout">
+          
+          <div class="client-header-bar">
+            <div>
+              <span class="client-sub">Cliente Autenticado</span>
+              <h3 class="client-name" id="menuHolderName">Jesus Tovar</h3>
+              <span class="client-acc" id="menuAccountNumber">Cuenta: 10000001</span>
+            </div>
+            <div class="header-right-meta">
+              <div class="balance-chip">
+                <span class="chip-label">Saldo Disponible</span>
+                <span class="chip-val" id="menuQuickBalance">$0.00</span>
+              </div>
+              <button class="btn-touch-danger" id="btnMenuExit">Finalizar y Salir</button>
+            </div>
+          </div>
+
+          <div class="kiosk-prompt-label">Seleccione la operación que desea realizar:</div>
+
+          <div class="kiosk-options-grid">
+            
+            <!-- Boton de Retirar Efectivo -->
+            <button class="kiosk-big-btn featured-option" id="btnMenuWithdraw">
+              <div class="big-btn-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+              </div>
+              <div class="big-btn-text">
+                <div class="btn-main-title">Retirar Efectivo</div>
+                <div class="btn-sub-title">Dispensar billetes</div>
+              </div>
+              <span class="touch-arrow">&rarr;</span>
+            </button>
+
+            <!-- Boton de Consultar Saldo -->
+            <button class="kiosk-big-btn" id="btnMenuBalance">
+              <div class="big-btn-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10h20"/><rect width="20" height="14" x="2" y="5" rx="2"/></svg>
+              </div>
+              <div class="big-btn-text">
+                <div class="btn-main-title">Consultar Saldo</div>
+                <div class="btn-sub-title">Ver saldo contable en Banco Central</div>
+              </div>
+              <span class="touch-arrow">&rarr;</span>
+            </button>
+
+            <!-- Boton de Depositar -->
+            <button class="kiosk-big-btn" id="btnMenuDeposit">
+              <div class="big-btn-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="big-btn-text">
+                <div class="btn-main-title">Depositar Efectivo</div>
+                <div class="btn-sub-title">Abonar billetes a la cuenta central</div>
+              </div>
+              <span class="touch-arrow">&rarr;</span>
+            </button>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CONSULTA DE SALDO -->
+      <section id="screenBalance" class="kiosk-view">
+        <div class="kiosk-dialog-stage">
+          <div class="dialog-card">
+            <span class="dialog-pretitle">Información de Saldo</span>
+            <h2 id="balanceAccNumber">Cuenta No. 10000001</h2>
+            
+            <div class="amount-hero-box">
+              <span class="amount-legend">Saldo Total Disponible</span>
+              <div class="amount-digits" id="balanceAmountText">$0.00</div>
+              <span class="status-tag active" id="balanceAccountStatus">Cuenta Activa</span>
+            </div>
+
+            <div class="dialog-footer-actions">
+              <button class="btn-touch-default" id="btnBalanceBack">&larr; Menú Principal</button>
+              <button class="btn-touch-primary" id="btnBalanceGoWithdraw">Ir a Retirar Efectivo &rarr;</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RETIRO DE EFECTIVO -->
+      <section id="screenWithdraw" class="kiosk-view">
+        <div class="kiosk-content-layout">
+          <div class="section-title-row">
+            <div>
+              <h2>Seleccione el Monto a Retirar</h2>
+              <p>El importe se debitará de su cuenta y se dispensará en billetes</p>
+            </div>
+            <button class="btn-touch-default" id="btnWithdrawBack">&larr; Regresar</button>
+          </div>
+
+          <!-- Matriz de Selección Rápida -->
+          <div class="touch-amount-grid">
+            <button class="btn-touch-amount" data-amount="100">$100.00</button>
+            <button class="btn-touch-amount" data-amount="200">$200.00</button>
+
+            <button class="btn-touch-amount" data-amount="300" id="btnQuick300">$300.00</button>
+
+            <button class="btn-touch-amount" data-amount="500">$500.00</button>
+            <button class="btn-touch-amount" data-amount="1000">$1,000.00</button>
+            <button class="btn-touch-amount" data-amount="2000">$2,000.00</button>
+          </div>
+
+          <!-- Entrada personalizada de importe -->
+          <div class="custom-amount-box">
+            <label for="inputCustomWithdraw">O ingrese otro monto en múltiplos de $50:</label>
+            <div class="custom-row">
+              <span class="currency-label">$</span>
+              <input type="number" id="inputCustomWithdraw" class="kiosk-input" placeholder="Ej. 450" min="50" step="50">
+              <button class="btn-touch-primary" id="btnConfirmCustomWithdraw">Confirmar Retiro</button>
+            </div>
+          </div>
+
+          <div class="kiosk-alert error" id="withdrawAlert" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- DEPOSITO -->
+      <section id="screenDeposit" class="kiosk-view">
+        <div class="kiosk-content-layout">
+          <div class="section-title-row">
+            <div>
+              <h2>Depósito en Efectivo</h2>
+              <p>Ingrese el importe que abonará a su cuenta corriente</p>
+            </div>
+            <button class="btn-touch-default" id="btnDepositBack">&larr; Regresar</button>
+          </div>
+
+          <div class="custom-amount-box">
+            <label for="inputDepositAmount">Monto a depositar en pesos:</label>
+            <div class="custom-row">
+              <span class="currency-label">$</span>
+              <input type="number" id="inputDepositAmount" class="kiosk-input" placeholder="Ej. 500" min="50" step="50">
+              <button class="btn-touch-primary" id="btnConfirmDeposit">Aceptar Depósito</button>
+            </div>
+          </div>
+
+          <div class="kiosk-alert error" id="depositAlert" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- PROCESANDO -->
+      <section id="screenProcessing" class="kiosk-view">
+        <div class="kiosk-dialog-stage">
+          <div class="processing-card">
+            <div class="touch-spinner"></div>
+            <h2 id="processingTitle">Procesando Operación</h2>
+            <p id="processingSubtitle">Verificando efectivo local y autorizando con Banco Central...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECIBO -->
+      <section id="screenReceipt" class="kiosk-view">
+        <div class="kiosk-dialog-stage">
+          <div class="receipt-card">
+            <div class="receipt-top">
+              <div class="receipt-icon-circle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <h2>Operación Exitosa</h2>
+              <p>Por favor tome su dinero del dispensador</p>
+            </div>
+
+            <div class="receipt-details">
+              <div class="receipt-item">
+                <span class="r-label">Tipo de Operación:</span>
+                <span class="r-val" id="receiptOpType">Retiro en Efectivo</span>
+              </div>
+              <div class="receipt-item">
+                <span class="r-label">Cuenta:</span>
+                <span class="r-val font-mono" id="receiptAccount">•••• 0000</span>
+              </div>
+              <div class="receipt-item">
+                <span class="r-label">Titular:</span>
+                <span class="r-val" id="receiptHolder">Cliente</span>
+              </div>
+              <div class="receipt-item highlight">
+                <span class="r-label">Monto Retirado:</span>
+                <span class="r-val font-mono text-danger" id="receiptAmount">$300.00</span>
+              </div>
+              <div class="receipt-item highlight">
+                <span class="r-label">Nuevo Saldo en Cuenta:</span>
+                <span class="r-val font-mono text-success" id="receiptNewBalance">$700.00</span>
+              </div>
+              <div class="receipt-sep"></div>
+              <div class="receipt-item sub">
+                <span class="r-label">ID Transacción:</span>
+                <span class="r-val font-mono" id="receiptTxId">UUID-0000</span>
+              </div>
+              <div class="receipt-item sub">
+                <span class="r-label">Fecha y Hora:</span>
+                <span class="r-val" id="receiptTimestamp">--/--/----</span>
+              </div>
+            </div>
+
+            <div class="receipt-actions">
+              <button class="btn-touch-primary" id="btnReceiptFinish">Finalizar Sesión</button>
+              <button class="btn-touch-default" id="btnReceiptMenu">Otra Transacción</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Barra Inferior -->
+    <footer class="kiosk-bottombar">
+      <div class="bottom-left">
+        <span class="kiosk-status-item">
+          <span>Efectivo en Cajero:</span>
+          <strong id="footerLocalCash">Consultando...</strong>
+        </span>
+        <span class="sep">&bull;</span>
+        <span class="kiosk-status-item">
+          <span>Banco Central:</span>
+          <strong id="footerApiKeyStatus">Verificando...</strong>
+        </span>
+      </div>
+      <div class="bottom-right">
+        <span>Terminal Autoservicio ATM &bull; Examen Parcial 2</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="js/atm.js"></script>
+</body>
+</html>
