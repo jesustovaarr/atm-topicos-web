@@ -1,0 +1,23 @@
+{
+  "name": "cajero-atm-distribuido",
+  "version": "1.0.0",
+  "description": "Nodo de Cajero Automático (ATM) para Sistema Bancario Distribuido",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [
+    "atm",
+    "banco-distribuido",
+    "express",
+    "vercel"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
