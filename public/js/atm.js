@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const formattedCash = `$${Number(data.cashAvailableLocal).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
       if (atmNodeName) {
-        const locationText = data.location ? ` &bull; ${data.location}` : '';
-        atmNodeName.innerHTML = `Terminal ${data.nodeName || 'ATM-01'}${locationText}`;
+        const locationText = data.location ? ` &bull; <strong>${data.location}</strong>` : '';
+        atmNodeName.innerHTML = `Terminal <strong>${data.nodeName || 'ATM-01'}</strong>${locationText}`;
       }
       if (footerLocalCash) footerLocalCash.textContent = formattedCash;
       if (footerApiKeyStatus) {

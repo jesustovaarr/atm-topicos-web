@@ -9,6 +9,7 @@ const config = {
   nodeName: process.env.ATM_NODE_NAME || 'ATM-CENTRO',
   location: process.env.ATM_LOCATION || 'Sucursal Centro',
   mockBank: process.env.MOCK_BANK === 'true',
+  adminPassword: process.env.ATM_ADMIN_PASSWORD || 'admin1234',
   env: process.env.NODE_ENV || 'development'
 };
 

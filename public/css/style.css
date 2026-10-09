@@ -96,9 +96,14 @@ html, body {
 
 .terminal-id {
   font-size: 0.75rem;
-  color: var(--text-subtle);
-  font-weight: 500;
+  color: var(--bank-blue);
+  font-weight: 600;
   display: block;
+}
+
+.terminal-id strong {
+  color: var(--bank-blue);
+  font-weight: 700;
 }
 
 .kiosk-top-right {
@@ -818,3 +823,216 @@ html, body {
     justify-content: space-between;
   }
 }
+
+/* ESTILOS DEL PANEL ADMINISTRATIVO  */
+
+.admin-canvas {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.admin-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.admin-card {
+  background: var(--surface-panel);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-kiosk);
+}
+
+.admin-card.span-full {
+  grid-column: 1 / -1;
+}
+
+.admin-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 14px;
+}
+
+.header-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bank-blue);
+  flex-shrink: 0;
+}
+
+.admin-card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+  margin-bottom: 2px;
+}
+
+.admin-card-header p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.kiosk-input.bordered {
+  background: var(--surface-muted);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  height: 44px;
+}
+
+.kiosk-input.bordered:focus {
+  border-color: var(--bank-blue);
+  background: #ffffff;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.form-buttons-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.connection-status-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.connection-status-box.success {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+
+.connection-status-box.error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+/* Indicador de Bóveda */
+.vault-status-indicator {
+  background: var(--surface-muted);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.vault-legend {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.vault-digit {
+  font-family: var(--font-mono);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--bank-blue);
+  margin: 6px 0;
+}
+
+.vault-caption {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Tabla de Auditoría */
+.table-container {
+  overflow-x: auto;
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.audit-table th {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.audit-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-dark);
+}
+
+.audit-table tr:hover td {
+  background: var(--surface-muted);
+}
+
+.badge-audit {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badge-audit.dispense {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.badge-audit.deposit_received {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge-audit.admin_adjustment {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+@media (max-width: 860px) {
+  .admin-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+

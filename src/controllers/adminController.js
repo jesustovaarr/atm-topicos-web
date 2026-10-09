@@ -10,6 +10,21 @@ const config = require('../config/env');
  */
 class AdminController {
   /**
+   * Autenticación de Modo Supervisor
+   * POST /api/admin/login
+   */
+  login(req, res) {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, error: 'Ingrese la contraseña de operador' });
+    }
+    if (password !== config.adminPassword) {
+      return res.status(401).json({ success: false, error: 'Contraseña de operador incorrecta' });
+    }
+    return res.status(200).json({ success: true, message: 'Acceso autorizado al modo de configuración' });
+  }
+
+  /**
    * Obtiene la configuración actual del cajero y el estado de la bóveda
    * GET /api/admin/config
    */

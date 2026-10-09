@@ -12,6 +12,7 @@ router.post('/atm/deposit', (req, res) => atmController.deposit(req, res));
 router.get('/atm/status', (req, res) => atmController.getStatus(req, res));
 
 // Rutas del Panel Administrativo del Cajero
+router.post('/admin/login', (req, res) => adminController.login(req, res));
 router.get('/admin/config', (req, res) => adminController.getConfig(req, res));
 router.post('/admin/config', (req, res) => adminController.updateConfig(req, res));
 router.post('/admin/cash', (req, res) => adminController.adjustCash(req, res));

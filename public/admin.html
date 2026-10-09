@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración ATM</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="kiosk-viewport">
+    
+    <!-- Barra Superior -->
+    <header class="kiosk-topbar">
+      <div class="kiosk-brand">
+        <div class="bank-symbol">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <span class="bank-name">PANEL DE GESTIÓN</span>
+          <span class="terminal-id" id="adminNodeHeader">Cargando terminal...</span>
+        </div>
+      </div>
+
+      <div class="kiosk-top-right">
+        <div class="kiosk-badge" id="adminNetworkBadge">
+          <span class="kiosk-dot online"></span>
+          <span id="adminNetworkText">OPERATIVO</span>
+        </div>
+        <div class="kiosk-clock" id="liveClock">--:--:--</div>
+        <!-- Botón de logout -->
+        <button type="button" id="btnAdminLogout" class="kiosk-admin-link" style="display:none; cursor:pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
+          </svg>
+          <span>Bloquear Panel</span>
+        </button>
+        <a href="index.html" class="kiosk-admin-link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          <span>Volver al Cajero</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Área de Contenido -->
+    <main class="kiosk-screen admin-canvas">
+
+      <!-- AUTENTICACIÓN DE SUPERVISOR -->
+      <section id="adminLoginSection" class="kiosk-dialog-stage">
+        <div class="dialog-card">
+          <div class="header-icon" style="margin: 0 auto 14px; width: 50px; height: 50px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <span class="dialog-pretitle">Modo Mantenimiento</span>
+          <h2>Acceso Restringido a Operador</h2>
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px;">
+            Ingrese la contraseña del administrador del nodo para gestionar la conectividad del Banco Central y la bóveda de efectivo.
+          </p>
+
+          <form id="formAdminLogin" class="admin-form" style="text-align: left;">
+            <div class="form-group">
+              <label for="inputAdminPassword">Contraseña de Operador</label>
+              <input type="password" id="inputAdminPassword" class="kiosk-input bordered font-mono" placeholder="••••••••" autofocus required>
+            </div>
+
+            <button type="submit" class="btn-touch-primary" style="width: 100%; margin-top: 6px;">
+              Desbloquear Panel
+            </button>
+
+            <div id="adminLoginAlert" class="kiosk-alert error" style="display: none;"></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- DASHBOARD DE CONTROL -->
+      <section id="adminDashboardSection" class="admin-grid-layout" style="display: none;">
+        
+        <!-- Conectividad y API Key -->
+        <section class="admin-card">
+          <div class="admin-card-header">
+            <div class="header-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Conectividad con Banco Central</h3>
+              <p>Credenciales generadas por el Banco Central</p>
+            </div>
+          </div>
+
+          <form id="formBankConfig" class="admin-form">
+            <div class="form-group">
+              <label for="inputCentralBankUrl">URL del Banco Central</label>
+              <input type="url" id="inputCentralBankUrl" class="kiosk-input bordered" placeholder="http://localhost:8000" required>
+              <span class="field-hint">Dirección del backend</span>
+            </div>
+
+            <div class="form-group">
+              <label for="inputApiKey">API Key del Nodo</label>
+              <div class="input-with-action">
+                <input type="text" id="inputApiKey" class="kiosk-input bordered font-mono" placeholder="Pegue el API Key" autocomplete="off">
+              </div>
+            </div>
+
+            <div class="form-buttons-row">
+              <button type="submit" class="btn-touch-primary">Guardar Credenciales</button>
+              <button type="button" id="btnTestConnection" class="btn-touch-default">Probar Conexión</button>
+            </div>
+
+            <div id="connectionStatusBox" class="connection-status-box" style="display:none;"></div>
+          </form>
+        </section>
+
+        <!-- Dispersión y Stock Físico Local -->
+        <section class="admin-card">
+          <div class="admin-card-header">
+            <div class="header-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Dispersión de Efectivo en Bóveda</h3>
+              <p>Control del stock físico local de billetes del cajero</p>
+            </div>
+          </div>
+
+          <div class="vault-status-indicator">
+            <span class="vault-legend">Efectivo Físico Disponible Actualmente</span>
+            <div class="vault-digit" id="adminCashDisplay">$0.00</div>
+            <span class="vault-caption">Verificado localmente antes de cada retiro</span>
+          </div>
+
+          <form id="formAdjustCash" class="admin-form">
+            <div class="form-group">
+              <label for="inputNewCash">Establecer Nuevo Monto de Bóveda ($)</label>
+              <input type="number" id="inputNewCash" class="kiosk-input bordered font-mono" placeholder="Ej: 5000.00" min="0" step="50" required>
+            </div>
+
+            <div class="form-group">
+              <label for="inputCashReason">Motivo del Ajuste</label>
+              <input type="text" id="inputCashReason" class="kiosk-input bordered" placeholder="Ej: Dispersión inicial de efectivo">
+            </div>
+
+            <button type="submit" class="btn-touch-primary">Actualizar Bóveda</button>
+          </form>
+        </section>
+
+        <!-- Auditoría y Movimientos de Bóveda -->
+        <section class="admin-card span-full">
+          <div class="admin-card-header">
+            <div class="header-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Historial Local de Efectivo del Nodo</h3>
+              <p>Registro de dispensaciones de retiros, depósitos y recargas administrativas</p>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th>Fecha / Hora</th>
+                  <th>Tipo</th>
+                  <th>Monto</th>
+                  <th>Bóveda Anterior</th>
+                  <th>Bóveda Resultante</th>
+                  <th>Detalle / Folio</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody">
+                <tr>
+                  <td colspan="6" class="text-center">Cargando movimientos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </section>
+
+    </main>
+
+    <!-- Barra Inferior -->
+    <footer class="kiosk-bottombar">
+      <div class="bottom-left">
+        <span class="kiosk-status-item">
+          <span>Nodo:</span>
+          <strong id="footerAdminNodeName">Cargando...</strong>
+        </span>
+        <span class="sep">&bull;</span>
+        <span class="kiosk-status-item">
+          <span>Ubicación:</span>
+          <strong id="footerAdminLocation">Cargando...</strong>
+        </span>
+        <span class="sep">&bull;</span>
+        <span class="kiosk-status-item">
+          <span>Efectivo en Bóveda:</span>
+          <strong id="footerAdminCash">Consultando...</strong>
+        </span>
+      </div>
+      <div class="bottom-right">
+        <span>Módulo Administrativo &bull; Configuración de ATM</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>
