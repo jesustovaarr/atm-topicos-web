@@ -404,4 +404,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicializar
   loadAtmStatus();
+
+  // Refrescar estado y telemetría cada 5 segundos cuando el cajero está en espera (pantalla de bienvenida)
+  setInterval(() => {
+    if (screens.welcome && screens.welcome.classList.contains('active') && !document.hidden) {
+      loadAtmStatus();
+    }
+  }, 5000);
 });

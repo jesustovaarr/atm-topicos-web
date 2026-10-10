@@ -108,7 +108,9 @@ class AtmController {
       if (centralResult.cash_after !== undefined && centralResult.cash_after !== null) {
         remainingCash = cashService.syncWithCentralCash(
           Number(centralResult.cash_after),
-          centralResult.transaction_id || idempotencyKey
+          centralResult.transaction_id || idempotencyKey,
+          'dispense',
+          withdrawAmount
         );
       } else {
         remainingCash = cashService.dispenseCash(
@@ -163,7 +165,9 @@ class AtmController {
       if (centralResult.cash_after !== undefined && centralResult.cash_after !== null) {
         newCash = cashService.syncWithCentralCash(
           Number(centralResult.cash_after),
-          centralResult.transaction_id || idempotencyKey
+          centralResult.transaction_id || idempotencyKey,
+          'deposit_received',
+          depositAmount
         );
       } else {
         newCash = cashService.acceptDeposit(

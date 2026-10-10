@@ -59,6 +59,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // CONTROL DE SESIÓN DE SUPERVISOR
 
+  let autoRefreshTimer = null;
+
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(() => {
+      const isAuth = sessionStorage.getItem('atm_supervisor_auth') === 'true';
+      if (isAuth && !document.hidden) {
+        loadConfig(true);
+      }
+    }, 3000);
+  }
+
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  }
+
   function checkSupervisorAuth() {
     const isAuth = sessionStorage.getItem('atm_supervisor_auth') === 'true';
 
@@ -66,8 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (adminLoginSection) adminLoginSection.style.display = 'none';
       if (adminDashboardSection) adminDashboardSection.style.display = 'grid';
       if (btnAdminLogout) btnAdminLogout.style.display = 'inline-flex';
+      loadNodeInfo();
       loadConfig();
+      startAutoRefresh();
     } else {
+      stopAutoRefresh();
       if (adminLoginSection) adminLoginSection.style.display = 'block';
       if (adminDashboardSection) adminDashboardSection.style.display = 'none';
       if (btnAdminLogout) btnAdminLogout.style.display = 'none';
@@ -113,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Logout de Supervisor
   if (btnAdminLogout) {
     btnAdminLogout.addEventListener('click', () => {
+      stopAutoRefresh();
       sessionStorage.removeItem('atm_supervisor_auth');
       checkSupervisorAuth();
     });
@@ -158,14 +181,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function loadConfig() {
+  async function loadConfig(isSilent = false) {
     try {
       const res = await fetch('/api/admin/config');
       if (!res.ok) throw new Error('Error al consultar configuración del nodo');
       const data = await res.json();
 
-      // Conectividad
-      if (inputCentralBankUrl) inputCentralBankUrl.value = data.centralBankUrl || '';
+      // Conectividad (solo actualizar si el usuario no está escribiendo en el campo)
+      if (inputCentralBankUrl && (!isSilent || document.activeElement !== inputCentralBankUrl)) {
+        inputCentralBankUrl.value = data.centralBankUrl || '';
+      }
 
       // Bóveda
       const formattedCash = `$${Number(data.cashAvailable).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
@@ -188,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Historial
       renderHistory(data.history || []);
     } catch (err) {
-      console.error('Error al cargar configuración:', err);
+      if (!isSilent) console.error('Error al cargar configuración:', err);
     }
   }
 
@@ -210,7 +235,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const typeLabels = {
       dispense: { label: 'Retiro Dispensado', class: 'dispense' },
       deposit_received: { label: 'Depósito Recibido', class: 'deposit_received' },
-      admin_adjustment: { label: 'Ajuste', class: 'admin_adjustment' }
+      admin_adjustment: { label: 'Ajuste Manual', class: 'admin_adjustment' },
+      boot_sync: { label: 'Sincronización Banco', class: 'sync' },
+      central_sync: { label: 'Sincronización Banco', class: 'sync' }
     };
 
     auditTableBody.innerHTML = history.map(item => {
@@ -219,7 +246,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const amountStr = `$${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
       const prevStr = `$${Number(item.previousCash).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
       const newStr = `$${Number(item.newCash).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-      const detail = item.transactionId ? `Folio: ${item.transactionId.substring(0, 13)}...` : (item.reason || 'Operación local');
+      
+      let detail = item.reason || 'Operación local';
+      if (item.transactionId === 'central_boot_sync') {
+        detail = 'Sincronización con Supabase';
+      } else if (item.transactionId) {
+        detail = `Folio: ${item.transactionId.substring(0, 13)}...`;
+      }
 
       return `
         <tr>

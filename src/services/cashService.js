@@ -194,22 +194,29 @@ class CashService {
    * Sincroniza el efectivo físico con el reporte oficial del Banco Central (cash_after)
    * @param {number} centralCashAmount
    * @param {string} transactionId
+   * @param {string} opType 'dispense' | 'deposit_received' | 'boot_sync' | 'central_sync'
+   * @param {number} operationAmount Monto nominal de la operación (ej: 200)
    */
-  syncWithCentralCash(centralCashAmount, transactionId = null) {
+  syncWithCentralCash(centralCashAmount, transactionId = null, opType = 'central_sync', operationAmount = null) {
     const parsed = Number(centralCashAmount);
     if (isNaN(parsed) || parsed < 0) return this.cashAvailable;
 
     const previous = this.cashAvailable;
     this.cashAvailable = Number(parsed.toFixed(2));
 
-    this.history.push({
-      type: 'central_sync',
-      amount: Math.abs(this.cashAvailable - previous),
-      previousCash: previous,
-      newCash: this.cashAvailable,
-      transactionId,
-      timestamp: new Date().toISOString()
-    });
+    const delta = operationAmount !== null ? Number(operationAmount) : Math.abs(this.cashAvailable - previous);
+
+    // Evitar registrar entradas con monto 0 en sincronizaciones automáticas
+    if (delta > 0 || opType !== 'boot_sync') {
+      this.history.push({
+        type: opType,
+        amount: delta,
+        previousCash: previous,
+        newCash: this.cashAvailable,
+        transactionId,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     this._saveState();
     return this.cashAvailable;
@@ -241,7 +248,13 @@ class CashService {
     }
 
     if (typeof nodeInfo.cash === 'number' && !isNaN(nodeInfo.cash)) {
-      this.syncWithCentralCash(nodeInfo.cash, 'central_boot_sync');
+      const diff = Math.abs(this.cashAvailable - nodeInfo.cash);
+      // Solo registrar cambio si el efectivo difiere del estado local actual
+      if (diff > 0.01) {
+        this.syncWithCentralCash(nodeInfo.cash, 'central_boot_sync', 'boot_sync', diff);
+      } else if (hasChanges) {
+        this._saveState();
+      }
     } else if (hasChanges) {
       this._saveState();
     }

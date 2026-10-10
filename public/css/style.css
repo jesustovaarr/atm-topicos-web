@@ -1030,6 +1030,39 @@ html, body {
   color: #0284c7;
 }
 
+.badge-audit.sync,
+.badge-audit.boot_sync,
+.badge-audit.central_sync {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.live-indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #047857;
+  background: #d1fae5;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.05em;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
 @media (max-width: 860px) {
   .admin-grid-layout {
     grid-template-columns: 1fr;
