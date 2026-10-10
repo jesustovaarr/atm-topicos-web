@@ -1,0 +1,608 @@
+openapi: 3.0.3
+info:
+  title: API de Cajero Automático (ATM) - Sistema Bancario Distribuido
+  description: |
+    Especificación OpenAPI 3.0 para el **Nodo 3: Cajero Automático (ATM)** del Sistema Bancario Distribuido.
+    
+    Implementa:
+    - **Operaciones de Autoservicio:** Autenticación con PIN, consulta de saldo, depósito y retiro con verificación física local y llave de idempotencia UUID v4.
+    - **Panel Administrativo:** Modo supervisor con autenticación protegida, ajuste de bóveda de efectivo y configuración dinámica del API Key del Banco Central.
+    - **Arquitectura Distribuida:** Conexión segura con el Banco Central mediante cabeceras `X-API-KEY`.
+  version: 1.0.0
+  contact:
+    name: Soporte Técnico ATM
+
+servers:
+  - url: http://localhost:3000
+    description: Entorno Local de Desarrollo
+  - url: https://atm-topicos-web.vercel.app
+    description: Despliegue en Producción (Vercel)
+
+tags:
+  - name: Autoservicio ATM
+    description: Operaciones de cara al cliente en la terminal táctil
+  - name: Administración y Supervisor
+    description: Gestión del nodo, bóveda física local y conectividad de red
+  - name: Monitoreo
+    description: Diagnóstico de salud y telemetría
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - Monitoreo
+      summary: Comprobación de salud del nodo (Healthcheck)
+      description: Retorna el estado operativo del servidor y si las credenciales del Banco Central están cargadas.
+      responses:
+        '200':
+          description: Nodo operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: online
+                  nodeName:
+                    type: string
+                    example: ATM-CENTRO
+                  type:
+                    type: string
+                    example: atm
+                  timestamp:
+                    type: string
+                    format: date-time
+                  centralBankConfigured:
+                    type: boolean
+                    example: true
+
+  /api/atm/status:
+    get:
+      tags:
+        - Monitoreo
+      summary: Telemetría y estado operativo del cajero
+      description: Devuelve el nombre del nodo, ubicación física, efectivo local en bóveda y estado del enlace con el Banco Central.
+      responses:
+        '200':
+          description: Telemetría recuperada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AtmStatusResponse'
+
+  /api/atm/login:
+    post:
+      tags:
+        - Autoservicio ATM
+      summary: Autenticación de cliente bancario
+      description: Valida el número de cuenta y PIN de seguridad de 4 dígitos contra el Banco Central.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Datos de entrada incompletos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Credenciales inválidas (PIN o cuenta incorrecta)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/atm/balance/{accountNumber}:
+    get:
+      tags:
+        - Autoservicio ATM
+      summary: Consulta de saldo de cuenta
+      description: Solicita al Banco Central el balance actual de la cuenta bancaria.
+      parameters:
+        - name: accountNumber
+          in: path
+          required: true
+          description: Número de cuenta del cliente
+          schema:
+            type: string
+            example: "10000001"
+      responses:
+        '200':
+          description: Saldo obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '400':
+          description: Número de cuenta faltante o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Cuenta no encontrada en el Banco Central
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/atm/withdraw:
+    post:
+      tags:
+        - Autoservicio ATM
+      summary: Retiro de efectivo con validación física e idempotencia
+      description: |
+        Flujo de retiro (Paso 4 y 5 del Examen):
+        1. Valida primero que la bóveda física local del cajero cuente con el efectivo solicitado.
+        2. Si hay billetes suficientes, contacta al Banco Central con una cabecera de idempotencia (UUID v4) para descontar el saldo contable central en Supabase.
+        3. Tras la autorización central, descuenta el efectivo físico de la bóveda local y emite el recibo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawRequest'
+      responses:
+        '200':
+          description: Retiro completado y efectivo dispensado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithdrawResponse'
+        '400':
+          description: Solicitud inválida (monto menor a cero, campos faltantes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Efectivo físico insuficiente en el dispensador local del cajero
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Saldo insuficiente en la cuenta bancaria central
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Error de comunicación o falla con el Banco Central
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/atm/deposit:
+    post:
+      tags:
+        - Autoservicio ATM
+      summary: Depósito de efectivo
+      description: Recibe billetes en el cajero, los ingresa a la bóveda física e instruye al Banco Central a abonar el saldo contable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+      responses:
+        '200':
+          description: Depósito recibido y acreditado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepositResponse'
+        '400':
+          description: Monto inválido o campos faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Fallo al comunicarse con el Banco Central
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/login:
+    post:
+      tags:
+        - Administración y Supervisor
+      summary: Autenticación de supervisor / operador técnico
+      description: Valida la contraseña del operador técnico para habilitar las opciones de mantenimiento y configuración.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  example: "admin1234"
+      responses:
+        '200':
+          description: Acceso autorizado al modo supervisor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Acceso autorizado al modo de configuración"
+        '401':
+          description: Contraseña de operador incorrecta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/config:
+    get:
+      tags:
+        - Administración y Supervisor
+      summary: Consulta de configuración y auditoría de bóveda
+      description: Retorna la URL del Banco Central, estado de API Key, efectivo disponible y los últimos movimientos locales.
+      responses:
+        '200':
+          description: Configuración obtenida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminConfigResponse'
+    post:
+      tags:
+        - Administración y Supervisor
+      summary: Actualización en caliente de credenciales del Banco Central
+      description: Actualiza la URL del Banco Central o el API Key del cajero sin reiniciar el servidor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                central_bank_url:
+                  type: string
+                  example: "http://localhost:8000"
+                api_key:
+                  type: string
+                  example: "atm_production_key_456"
+      responses:
+        '200':
+          description: Credenciales actualizadas exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Configuración de conectividad actualizada exitosamente"
+
+  /api/admin/cash:
+    post:
+      tags:
+        - Administración y Supervisor
+      summary: Ajuste o recarga física de la bóveda del cajero
+      description: Permite al operador técnico fijar o dotar un nuevo monto de efectivo en la bóveda física y registrar el motivo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  example: 5000.00
+                reason:
+                  type: string
+                  example: "Dotación inicial de efectivo"
+      responses:
+        '200':
+          description: Bóveda actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Efectivo local actualizado exitosamente a $5000.00"
+                  cashAvailable:
+                    type: number
+                    example: 5000.00
+
+  /api/admin/test-connection:
+    get:
+      tags:
+        - Administración y Supervisor
+      summary: Diagnóstico de conectividad con el Banco Central
+      description: Envía un ping de verificación al Banco Central usando el API Key configurado.
+      responses:
+        '200':
+          description: Banco Central responde correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Conexión exitosa con el Banco Central"
+        '502':
+          description: No fue posible comunicarse con el Banco Central
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Clave de autenticación para comunicación nodo-a-nodo con el Banco Central
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - account_number
+        - pin
+      properties:
+        account_number:
+          type: string
+          example: "10000001"
+        pin:
+          type: string
+          example: "1234"
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Autenticación exitosa"
+        account_number:
+          type: string
+          example: "10000001"
+        holder_name:
+          type: string
+          example: "Jesus Tovar"
+        balance:
+          type: number
+          example: 1000.00
+        nodeName:
+          type: string
+          example: "ATM-CENTRO"
+
+    BalanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        account_number:
+          type: string
+          example: "10000001"
+        balance:
+          type: number
+          example: 1000.00
+        currency:
+          type: string
+          example: "MXN"
+        timestamp:
+          type: string
+          format: date-time
+
+    WithdrawRequest:
+      type: object
+      required:
+        - account_number
+        - pin
+        - amount
+      properties:
+        account_number:
+          type: string
+          example: "10000001"
+        pin:
+          type: string
+          example: "1234"
+        amount:
+          type: number
+          example: 300.00
+
+    WithdrawResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Retiro de $300.00 procesado exitosamente. Por favor tome su dinero."
+        amount:
+          type: number
+          example: 300.00
+        balance_after:
+          type: number
+          example: 700.00
+        cash_available_local:
+          type: number
+          example: 4700.00
+        transaction_id:
+          type: string
+          format: uuid
+          example: "76619fce-8f39-4e28-b64d-0b351bd0bac9"
+        idempotency_key:
+          type: string
+          format: uuid
+          example: "76619fce-8f39-4e28-b64d-0b351bd0bac9"
+        timestamp:
+          type: string
+          format: date-time
+
+    DepositRequest:
+      type: object
+      required:
+        - account_number
+        - amount
+      properties:
+        account_number:
+          type: string
+          example: "10000001"
+        amount:
+          type: number
+          example: 500.00
+
+    DepositResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Depósito de $500.00 recibido exitosamente."
+        amount:
+          type: number
+          example: 500.00
+        balance_after:
+          type: number
+          example: 1200.00
+        cash_available_local:
+          type: number
+          example: 5500.00
+        transaction_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+
+    AtmStatusResponse:
+      type: object
+      properties:
+        nodeName:
+          type: string
+          example: "Chucho ATM"
+        location:
+          type: string
+          example: "Francisco Juarez"
+        nodeId:
+          type: string
+          format: uuid
+          example: "01a122ef-1e6f-7164-9da4-4fc01e0f4a54"
+        status:
+          type: string
+          example: "active"
+        type:
+          type: string
+          example: "atm"
+        cashAvailableLocal:
+          type: number
+          example: 100000.00
+        bankConfigured:
+          type: boolean
+          example: true
+        dynamicSync:
+          type: boolean
+          example: true
+
+    AdminConfigResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        nodeName:
+          type: string
+          example: "ATM-CENTRO"
+        location:
+          type: string
+          example: "Sucursal Centro"
+        centralBankUrl:
+          type: string
+          example: "http://localhost:8000"
+        hasApiKey:
+          type: boolean
+          example: true
+        maskedApiKey:
+          type: string
+          example: "test_a..._123"
+        cashAvailable:
+          type: number
+          example: 5000.00
+        totalMovements:
+          type: integer
+          example: 5
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: "dispense"
+              amount:
+                type: number
+                example: 300.00
+              previousCash:
+                type: number
+                example: 5000.00
+              newCash:
+                type: number
+                example: 4700.00
+              transactionId:
+                type: string
+                example: "76619fce-8f39-4e28-b64d-0b351bd0bac9"
+              timestamp:
+                type: string
+                format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Mensaje descriptivo del error"
