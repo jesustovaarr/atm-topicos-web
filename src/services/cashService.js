@@ -17,6 +17,7 @@ class CashService {
     this.location = config.location;
     this.nodeId = config.nodeId;
     this.nodeStatus = 'active';
+    this.hasBootSynced = false;
     this.history = [];
     this._loadState();
   }
@@ -42,6 +43,7 @@ class CashService {
         const data = JSON.parse(raw);
         if (typeof data.cashAvailable === 'number') {
           this.cashAvailable = data.cashAvailable;
+          this.hasBootSynced = true;
           this.history = Array.isArray(data.history) ? data.history : [];
           if (data.nodeName) this.nodeName = data.nodeName;
           if (data.location) this.location = data.location;
@@ -176,6 +178,7 @@ class CashService {
 
     const previous = this.cashAvailable;
     this.cashAvailable = Number(parsed.toFixed(2));
+    this.hasBootSynced = true;
 
     this.history.push({
       type: 'admin_adjustment',
@@ -248,10 +251,14 @@ class CashService {
     }
 
     if (typeof nodeInfo.cash === 'number' && !isNaN(nodeInfo.cash)) {
-      const diff = Math.abs(this.cashAvailable - nodeInfo.cash);
-      // Solo registrar cambio si el efectivo difiere del estado local actual
-      if (diff > 0.01) {
-        this.syncWithCentralCash(nodeInfo.cash, 'central_boot_sync', 'boot_sync', diff);
+      // Solo sincronizar el efectivo desde el banco en el primer arranque en frío
+      // si no existía ningún estado previo en disco, para respetar los ajustes locales del supervisor
+      if (!this.hasBootSynced) {
+        this.hasBootSynced = true;
+        const diff = Math.abs(this.cashAvailable - nodeInfo.cash);
+        if (diff > 0.01) {
+          this.syncWithCentralCash(nodeInfo.cash, 'central_boot_sync', 'boot_sync', diff);
+        }
       } else if (hasChanges) {
         this._saveState();
       }

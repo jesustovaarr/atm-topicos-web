@@ -81,7 +81,7 @@ class AdminController {
    * Ajusta o recarga el efectivo físico local del cajero
    * POST /api/admin/cash
    */
-  adjustCash(req, res) {
+  async adjustCash(req, res) {
     try {
       const { amount, reason } = req.body;
       const parsedAmount = Number(amount);
@@ -93,6 +93,18 @@ class AdminController {
         });
       }
 
+      // Intentar actualizar en el Banco Central 
+      let centralUpdated = false;
+      try {
+        if (bankService.apiKey && !config.mockBank) {
+          await bankService.updateNodeCash(parsedAmount);
+          centralUpdated = true;
+        }
+      } catch (err) {
+        console.warn('[AdminController.adjustCash] Banco Central aún no soporta PATCH /api/nodes/me:', err.message);
+      }
+
+      // Actualizar stock local del cajero
       const newCash = cashService.setCashAvailable(
         parsedAmount,
         reason || 'Recarga desde panel administrativo'
@@ -100,8 +112,11 @@ class AdminController {
 
       return res.status(200).json({
         success: true,
-        message: `Efectivo local actualizado exitosamente a $${newCash.toFixed(2)}`,
-        cashAvailable: newCash
+        message: centralUpdated
+          ? `Bóveda actualizada exitosamente a $${newCash.toFixed(2)} en el cajero y en el Banco Central`
+          : `Efectivo local actualizado a $${newCash.toFixed(2)} (Aviso: El Banco Central no tiene habilitado endpoint de escritura para bóveda)`,
+        cashAvailable: newCash,
+        centralUpdated
       });
     } catch (err) {
       return res.status(500).json({

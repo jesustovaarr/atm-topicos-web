@@ -172,6 +172,25 @@ class BankService {
   }
 
   /**
+   * Actualiza el efectivo del nodo en el Banco Central (Supabase)
+   * PATCH /api/nodes/me
+   */
+  async updateNodeCash(newCash) {
+    if (config.mockBank) {
+      return { success: true, cash: Number(newCash) };
+    }
+
+    if (!this.apiKey) {
+      throw new Error('El cajero no tiene un API Key configurada.');
+    }
+
+    return this._request('/api/nodes/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ cash: Number(newCash) })
+    });
+  }
+
+  /**
    * Valida el número de cuenta y el PIN del cliente
    */
   async verifyPin(accountNumber, pin) {
