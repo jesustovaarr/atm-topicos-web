@@ -279,3 +279,14 @@ ATM_ADMIN_PASSWORD=admin1234
 5. Haz clic en **"Deploy"**.
 
 Vercel compilará automáticamente el proyecto utilizando `api/index.js` como función serverless y servirá la carpeta `public/` como assets estáticos.
+
+---
+
+## Credenciales de Acceso
+
+Para probar dentro de la web con datos reales, se pueden usar las siguientes:
+
+Cuenta: 10009003
+PIN: 1234
+
+Contraseña Admin: admin1234
