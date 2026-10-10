@@ -13,6 +13,10 @@ class CashService {
   constructor() {
     this.storagePath = this._resolveStoragePath();
     this.cashAvailable = config.initialCash;
+    this.nodeName = config.nodeName;
+    this.location = config.location;
+    this.nodeId = config.nodeId;
+    this.nodeStatus = 'active';
     this.history = [];
     this._loadState();
   }
@@ -39,6 +43,10 @@ class CashService {
         if (typeof data.cashAvailable === 'number') {
           this.cashAvailable = data.cashAvailable;
           this.history = Array.isArray(data.history) ? data.history : [];
+          if (data.nodeName) this.nodeName = data.nodeName;
+          if (data.location) this.location = data.location;
+          if (data.nodeId) this.nodeId = data.nodeId;
+          if (data.nodeStatus) this.nodeStatus = data.nodeStatus;
           return;
         }
       }
@@ -64,7 +72,10 @@ class CashService {
         this.storagePath,
         JSON.stringify(
           {
-            nodeName: config.nodeName,
+            nodeName: this.nodeName || config.nodeName,
+            location: this.location || config.location,
+            nodeId: this.nodeId || config.nodeId,
+            nodeStatus: this.nodeStatus || 'active',
             cashAvailable: this.cashAvailable,
             lastUpdated: new Date().toISOString(),
             history: this.history.slice(-50) // Guardar últimos 50 movimientos
@@ -180,11 +191,71 @@ class CashService {
   }
 
   /**
+   * Sincroniza el efectivo físico con el reporte oficial del Banco Central (cash_after)
+   * @param {number} centralCashAmount
+   * @param {string} transactionId
+   */
+  syncWithCentralCash(centralCashAmount, transactionId = null) {
+    const parsed = Number(centralCashAmount);
+    if (isNaN(parsed) || parsed < 0) return this.cashAvailable;
+
+    const previous = this.cashAvailable;
+    this.cashAvailable = Number(parsed.toFixed(2));
+
+    this.history.push({
+      type: 'central_sync',
+      amount: Math.abs(this.cashAvailable - previous),
+      previousCash: previous,
+      newCash: this.cashAvailable,
+      transactionId,
+      timestamp: new Date().toISOString()
+    });
+
+    this._saveState();
+    return this.cashAvailable;
+  }
+
+  /**
+   * Actualiza los datos del nodo y su efectivo desde la respuesta dinámica del Banco Central
+   * @param {Object} nodeInfo
+   */
+  updateFromNodeInfo(nodeInfo) {
+    if (!nodeInfo) return;
+
+    let hasChanges = false;
+    if (nodeInfo.name && nodeInfo.name !== this.nodeName) {
+      this.nodeName = nodeInfo.name;
+      hasChanges = true;
+    }
+    if (nodeInfo.location && nodeInfo.location !== this.location) {
+      this.location = nodeInfo.location;
+      hasChanges = true;
+    }
+    if (nodeInfo.id && nodeInfo.id !== this.nodeId) {
+      this.nodeId = nodeInfo.id;
+      hasChanges = true;
+    }
+    if (nodeInfo.status && nodeInfo.status !== this.nodeStatus) {
+      this.nodeStatus = nodeInfo.status;
+      hasChanges = true;
+    }
+
+    if (typeof nodeInfo.cash === 'number' && !isNaN(nodeInfo.cash)) {
+      this.syncWithCentralCash(nodeInfo.cash, 'central_boot_sync');
+    } else if (hasChanges) {
+      this._saveState();
+    }
+  }
+
+  /**
    * Obtiene el estado completo para el panel de administración
    */
   getState() {
     return {
-      nodeName: config.nodeName,
+      nodeName: this.nodeName || config.nodeName,
+      location: this.location || config.location,
+      nodeId: this.nodeId || config.nodeId,
+      nodeStatus: this.nodeStatus || 'active',
       cashAvailable: this.getCashAvailable(),
       storagePath: this.storagePath,
       totalMovements: this.history.length,

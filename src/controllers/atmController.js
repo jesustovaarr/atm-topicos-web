@@ -30,7 +30,7 @@ class AtmController {
         account_number,
         holder_name: bankResult.holder_name || bankResult.titular || 'Cliente Bancario',
         balance: bankResult.balance !== undefined ? Number(bankResult.balance) : null,
-        nodeName: config.nodeName
+        nodeName: cashService.nodeName || config.nodeName
       });
     } catch (err) {
       console.error('[AtmController.login] Error:', err.message);
@@ -78,7 +78,7 @@ class AtmController {
    */
   async withdraw(req, res) {
     try {
-      const { account_number, amount } = req.body;
+      const { account_number, amount, pin } = req.body;
       const withdrawAmount = Number(amount);
 
       if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
@@ -100,14 +100,22 @@ class AtmController {
       // Generar clave de idempotencia única para este retiro
       const idempotencyKey = bankService.generateIdempotencyKey();
 
-      // Solicitar autorización y deducción contable al Banco Central
-      const centralResult = await bankService.withdraw(account_number, withdrawAmount, idempotencyKey);
+      // Solicitar autorización y deducción contable al Banco Central (incluyendo PIN)
+      const centralResult = await bankService.withdraw(account_number, withdrawAmount, idempotencyKey, pin);
 
-      // Si el Banco Central lo autorizó, descontar los billetes físicos locales del cajero
-      const remainingCash = cashService.dispenseCash(
-        withdrawAmount,
-        centralResult.transaction_id || idempotencyKey
-      );
+      // Si el Banco Central devolvió cash_after, sincronizamos directamente con el saldo real del nodo
+      let remainingCash;
+      if (centralResult.cash_after !== undefined && centralResult.cash_after !== null) {
+        remainingCash = cashService.syncWithCentralCash(
+          Number(centralResult.cash_after),
+          centralResult.transaction_id || idempotencyKey
+        );
+      } else {
+        remainingCash = cashService.dispenseCash(
+          withdrawAmount,
+          centralResult.transaction_id || idempotencyKey
+        );
+      }
 
       return res.status(200).json({
         success: true,
@@ -150,11 +158,19 @@ class AtmController {
       // Enviar abono al Banco Central
       const centralResult = await bankService.deposit(account_number, depositAmount, idempotencyKey);
 
-      // Ingresar los billetes recibidos a la bóveda física del cajero
-      const newCash = cashService.acceptDeposit(
-        depositAmount,
-        centralResult.transaction_id || idempotencyKey
-      );
+      // Sincronizar o ingresar los billetes recibidos a la bóveda física del cajero
+      let newCash;
+      if (centralResult.cash_after !== undefined && centralResult.cash_after !== null) {
+        newCash = cashService.syncWithCentralCash(
+          Number(centralResult.cash_after),
+          centralResult.transaction_id || idempotencyKey
+        );
+      } else {
+        newCash = cashService.acceptDeposit(
+          depositAmount,
+          centralResult.transaction_id || idempotencyKey
+        );
+      }
 
       return res.status(200).json({
         success: true,
@@ -178,13 +194,30 @@ class AtmController {
    * Consulta el estado operativo del cajero
    * GET /api/atm/status
    */
-  getStatus(req, res) {
+  async getStatus(req, res) {
+    let dynamicNode = null;
+    try {
+      if (bankService.apiKey && bankService.centralBankUrl && !config.mockBank) {
+        dynamicNode = await bankService.getNodeInfo();
+        if (dynamicNode) {
+          cashService.updateFromNodeInfo(dynamicNode);
+        }
+      }
+    } catch (err) {
+      // Si el Banco Central aún no tiene listo /api/nodes/me o da timeout,
+      // se utiliza suavemente la información local sin romper la terminal
+      console.warn('[AtmController.getStatus] Nodo dinámico pendiente en Banco Central:', err.message);
+    }
+
     res.status(200).json({
-      nodeName: config.nodeName,
-      location: config.location,
+      nodeName: dynamicNode?.name || cashService.nodeName || config.nodeName,
+      location: dynamicNode?.location || cashService.location || config.location,
+      nodeId: dynamicNode?.id || cashService.nodeId || config.nodeId,
+      status: dynamicNode?.status || cashService.nodeStatus || 'active',
       type: 'atm',
       cashAvailableLocal: cashService.getCashAvailable(),
-      bankConfigured: Boolean(bankService.apiKey && bankService.centralBankUrl)
+      bankConfigured: Boolean(bankService.apiKey && bankService.centralBankUrl),
+      dynamicSync: Boolean(dynamicNode)
     });
   }
 }

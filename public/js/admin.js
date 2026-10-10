@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminNetworkBadge = document.getElementById('adminNetworkBadge');
   const adminNetworkText = document.getElementById('adminNetworkText');
   const liveClock = document.getElementById('liveClock');
+  const adminNodeIdDisplay = document.getElementById('adminNodeIdDisplay');
 
   // Reloj digital en vivo
   function updateClock() {
@@ -182,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (footerAdminNodeName) footerAdminNodeName.textContent = data.nodeName || 'ATM-01';
       if (footerAdminLocation) footerAdminLocation.textContent = data.location || 'Sucursal Centro';
+      if (adminNodeIdDisplay && data.nodeId) adminNodeIdDisplay.textContent = data.nodeId;
 
       // Historial
       renderHistory(data.history || []);
@@ -273,10 +275,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (res.ok && data.success) {
+          let nodeDetail = '';
+          if (data.nodeData) {
+            nodeDetail = ` | Nodo Supabase: ${data.nodeData.name || 'ATM'} ($${Number(data.nodeData.cash).toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
+            loadConfig();
+          }
           const modeInfo = data.bankData?.status === 'simulacion_local_activa'
             ? ' (Modo simulación local activo)'
             : ' (Conexión exitosa a API Core)';
-          showStatus(connectionStatusBox, `${data.message}${modeInfo}`, true);
+          showStatus(connectionStatusBox, `${data.message}${modeInfo}${nodeDetail}`, true);
         } else {
           showStatus(connectionStatusBox, `Fallo de conexión: ${data.error || data.message}`, false);
         }

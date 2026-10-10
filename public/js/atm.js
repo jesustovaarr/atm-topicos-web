@@ -81,21 +81,26 @@ document.addEventListener('DOMContentLoaded', () => {
         footerApiKeyStatus.textContent = data.bankConfigured ? 'Conectado' : 'Pendiente';
         footerApiKeyStatus.style.color = data.bankConfigured ? '#047857' : '#b45309';
       }
-      setNetworkStatus(true);
+
+      if (data.status && data.status !== 'active') {
+        setNetworkStatus(false, 'NODO SUSPENDIDO');
+      } else {
+        setNetworkStatus(true);
+      }
     } catch (err) {
       setNetworkStatus(false);
     }
   }
 
-  function setNetworkStatus(online) {
+  function setNetworkStatus(online, customText = null) {
     if (!networkBadge) return;
     const dot = networkBadge.querySelector('.kiosk-dot');
     if (online) {
       if (dot) dot.className = 'kiosk-dot online';
-      if (networkText) networkText.textContent = 'OPERATIVO';
+      if (networkText) networkText.textContent = customText || 'OPERATIVO';
     } else {
       if (dot) dot.className = 'kiosk-dot offline';
-      if (networkText) networkText.textContent = 'FUERA DE SERVICIO';
+      if (networkText) networkText.textContent = customText || 'FUERA DE SERVICIO';
     }
   }
 
@@ -176,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
       session.accountNumber = data.account_number;
       session.holderName = data.holder_name;
       session.balance = data.balance !== null ? data.balance : 0;
+      session.pin = pin;
 
       menuHolderName.textContent = session.holderName;
       menuAccountNumber.textContent = `Cuenta: ${session.accountNumber}`;
@@ -250,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function closeSession() {
-    session = { accountNumber: '', holderName: '', balance: 0 };
+    session = { accountNumber: '', holderName: '', balance: 0, pin: '' };
     inputAccount.value = '';
     inputPin.value = '';
     hideAlert(loginAlert);
@@ -290,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           account_number: session.accountNumber,
+          pin: session.pin,
           amount: withdrawAmount
         })
       });

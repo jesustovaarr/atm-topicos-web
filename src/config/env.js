@@ -8,6 +8,7 @@ const config = {
   initialCash: parseFloat(process.env.INITIAL_LOCAL_CASH || '5000.00'),
   nodeName: process.env.ATM_NODE_NAME || 'ATM-CENTRO',
   location: process.env.ATM_LOCATION || 'Sucursal Centro',
+  nodeId: process.env.ATM_NODE_ID || process.env.NODO_ID || '',
   mockBank: process.env.MOCK_BANK === 'true',
   adminPassword: process.env.ATM_ADMIN_PASSWORD || 'admin1234',
   env: process.env.NODE_ENV || 'development'

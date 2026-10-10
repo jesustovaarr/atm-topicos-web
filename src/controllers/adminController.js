@@ -34,8 +34,10 @@ class AdminController {
 
     res.status(200).json({
       success: true,
-      nodeName: config.nodeName,
-      location: config.location,
+      nodeName: cashState.nodeName,
+      location: cashState.location,
+      nodeId: cashState.nodeId,
+      nodeStatus: cashState.nodeStatus,
       centralBankUrl: bankConf.centralBankUrl,
       hasApiKey: bankConf.hasApiKey,
       maskedApiKey: bankConf.maskedApiKey,
@@ -115,11 +117,24 @@ class AdminController {
    */
   async testConnection(req, res) {
     const result = await bankService.checkConnection();
+    let nodeInfo = null;
+    try {
+      if (bankService.apiKey && !config.mockBank) {
+        nodeInfo = await bankService.getNodeInfo();
+        if (nodeInfo) {
+          cashService.updateFromNodeInfo(nodeInfo);
+        }
+      }
+    } catch (e) {
+      // Ignorar si aún no existe /api/nodes/me
+    }
+
     if (result.ok) {
       return res.status(200).json({
         success: true,
         message: 'Conexión exitosa con el Banco Central',
-        bankData: result.data
+        bankData: result.data,
+        nodeData: nodeInfo
       });
     } else {
       return res.status(502).json({

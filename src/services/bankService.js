@@ -74,7 +74,7 @@ class BankService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'X-API-KEY': this.apiKey,
+      'X-API-Key': this.apiKey,
       'User-Agent': `ATM-Node/${config.nodeName}`,
       ...customHeaders
     };
@@ -139,6 +139,39 @@ class BankService {
   }
 
   /**
+   * Consulta los datos dinámicos del nodo registrados en el Banco Central
+   * (Nombre, ubicación, efectivo asignado en Supabase, UUID, estado)
+   * GET /api/nodes/me
+   */
+  async getNodeInfo() {
+    if (config.mockBank) {
+      return {
+        id: config.nodeId,
+        name: config.nodeName,
+        location: config.location,
+        type: 'atm',
+        cash: config.initialCash,
+        status: 'active'
+      };
+    }
+
+    if (!this.apiKey) {
+      throw new Error('El cajero no tiene un API Key configurada.');
+    }
+
+    const data = await this._request('/api/nodes/me', { method: 'GET' });
+
+    return {
+      id: data.id || data.uuid || config.nodeId,
+      name: data.name || data.nombre || config.nodeName,
+      location: data.location || data.ubicacion || config.location,
+      type: data.type || 'atm',
+      cash: data.cash !== undefined ? Number(data.cash) : config.initialCash,
+      status: data.status || 'active'
+    };
+  }
+
+  /**
    * Valida el número de cuenta y el PIN del cliente
    */
   async verifyPin(accountNumber, pin) {
@@ -172,10 +205,19 @@ class BankService {
       throw new Error('El cajero no tiene un API Key configurada.');
     }
 
-    return await this._request('/api/v1/atm/verify-pin', {
-      method: 'POST',
-      body: JSON.stringify({ account_number: accountNumber, pin: pin })
-    });
+    const account = await this.getBalance(accountNumber);
+    if (account.status && account.status !== 'active') {
+      const err = new Error('La cuenta bancaria se encuentra inactiva o bloqueada');
+      err.status = 403;
+      throw err;
+    }
+
+    return {
+      success: true,
+      account_number: account.account_number,
+      holder_name: account.holder_name,
+      balance: account.balance
+    };
   }
 
   /**
@@ -203,15 +245,23 @@ class BankService {
       throw new Error('El cajero no tiene un API Key configurada.');
     }
 
-    return await this._request(`/api/v1/atm/accounts/${encodeURIComponent(accountNumber)}/balance`, {
+    const data = await this._request(`/api/balance/${encodeURIComponent(accountNumber)}`, {
       method: 'GET'
     });
+
+    return {
+      success: true,
+      account_number: data.account_number,
+      holder_name: data.holder_name,
+      balance: Number(data.balance),
+      status: data.status
+    };
   }
 
   /**
    * Ejecuta un retiro contra el Banco Central
    */
-  async withdraw(accountNumber, amount, idempotencyKey = null) {
+  async withdraw(accountNumber, amount, idempotencyKey = null, pin = null) {
     const key = idempotencyKey || this.generateIdempotencyKey();
 
     if (config.mockBank) {
@@ -244,14 +294,27 @@ class BankService {
       throw new Error('El cajero no tiene un API Key configurada.');
     }
 
-    return await this._request('/api/v1/atm/withdraw', {
+    const data = await this._request('/api/withdraw', {
       method: 'POST',
+      headers: {
+        'Idempotency-Key': key
+      },
       body: JSON.stringify({
         account_number: accountNumber,
-        amount: Number(amount),
-        idempotency_key: key
+        pin: pin,
+        amount: Number(amount)
       })
     });
+
+    return {
+      success: true,
+      message: data.message || 'Retiro exitoso',
+      transaction_id: data.transaction_id || key,
+      balance_after: data.balance_after !== undefined ? Number(data.balance_after) : null,
+      cash_after: data.cash_after !== undefined ? Number(data.cash_after) : null,
+      idempotency_key: key,
+      replayed: data.replayed || false
+    };
   }
 
   /**
@@ -284,14 +347,25 @@ class BankService {
       throw new Error('El cajero no tiene un API Key configurada.');
     }
 
-    return await this._request('/api/v1/atm/deposit', {
+    const headers = {};
+    if (key) headers['Idempotency-Key'] = key;
+
+    const data = await this._request('/api/deposit', {
       method: 'POST',
+      headers,
       body: JSON.stringify({
         account_number: accountNumber,
-        amount: Number(amount),
-        idempotency_key: key
+        amount: Number(amount)
       })
     });
+
+    return {
+      success: true,
+      message: data.message || 'Depósito exitoso',
+      transaction_id: data.transaction_id || key,
+      balance_after: data.balance_after !== undefined ? Number(data.balance_after) : null,
+      idempotency_key: key
+    };
   }
 }
 
