@@ -18,6 +18,7 @@ class CashService {
     this.nodeId = config.nodeId;
     this.nodeStatus = 'active';
     this.hasBootSynced = false;
+    this.isLocallyOverridden = false;
     this.history = [];
     this._loadState();
   }
@@ -43,7 +44,7 @@ class CashService {
         const data = JSON.parse(raw);
         if (typeof data.cashAvailable === 'number') {
           this.cashAvailable = data.cashAvailable;
-          this.hasBootSynced = true;
+          this.isLocallyOverridden = Boolean(data.isLocallyOverridden);
           this.history = Array.isArray(data.history) ? data.history : [];
           if (data.nodeName) this.nodeName = data.nodeName;
           if (data.location) this.location = data.location;
@@ -58,6 +59,7 @@ class CashService {
 
     // Si no existía archivo, inicializar con el monto por defecto
     this.cashAvailable = config.initialCash;
+    this.isLocallyOverridden = false;
     this._saveState();
   }
 
@@ -79,6 +81,7 @@ class CashService {
             nodeId: this.nodeId || config.nodeId,
             nodeStatus: this.nodeStatus || 'active',
             cashAvailable: this.cashAvailable,
+            isLocallyOverridden: this.isLocallyOverridden,
             lastUpdated: new Date().toISOString(),
             history: this.history.slice(-50) // Guardar últimos 50 movimientos
           },
@@ -179,6 +182,7 @@ class CashService {
     const previous = this.cashAvailable;
     this.cashAvailable = Number(parsed.toFixed(2));
     this.hasBootSynced = true;
+    this.isLocallyOverridden = true; // El supervisor tomó control manual del monto
 
     this.history.push({
       type: 'admin_adjustment',
@@ -209,7 +213,6 @@ class CashService {
 
     const delta = operationAmount !== null ? Number(operationAmount) : Math.abs(this.cashAvailable - previous);
 
-    // Evitar registrar entradas con monto 0 en sincronizaciones automáticas
     if (delta > 0 || opType !== 'boot_sync') {
       this.history.push({
         type: opType,
@@ -228,11 +231,15 @@ class CashService {
   /**
    * Actualiza los datos del nodo y su efectivo desde la respuesta dinámica del Banco Central
    * @param {Object} nodeInfo
+   * @param {boolean} forceSyncCash Si es true, fuerza la sincronización de efectivo con el banco
    */
-  updateFromNodeInfo(nodeInfo) {
+  updateFromNodeInfo(nodeInfo, forceSyncCash = false) {
     if (!nodeInfo) return;
 
     let hasChanges = false;
+    // Detectar si el nodo en la respuesta tiene un ID diferente al que teníamos
+    const isNewNode = Boolean(nodeInfo.id && this.nodeId && nodeInfo.id !== this.nodeId);
+
     if (nodeInfo.name && nodeInfo.name !== this.nodeName) {
       this.nodeName = nodeInfo.name;
       hasChanges = true;
@@ -251,15 +258,84 @@ class CashService {
     }
 
     if (typeof nodeInfo.cash === 'number' && !isNaN(nodeInfo.cash)) {
-      // Solo sincronizar el efectivo desde el banco en el primer arranque en frío
-      // si no existía ningún estado previo en disco, para respetar los ajustes locales del supervisor
+      const bankCash = Number(nodeInfo.cash.toFixed(2));
+      const diff = Math.abs(this.cashAvailable - bankCash);
+
+      // 1. Si cambiamos a otro nodo (otro cajero):
+      if (isNewNode) {
+        this.isLocallyOverridden = false;
+        this.hasBootSynced = true;
+        const previous = this.cashAvailable;
+        this.cashAvailable = bankCash;
+        this.history.push({
+          type: 'node_switch_sync',
+          amount: diff,
+          previousCash: previous,
+          newCash: this.cashAvailable,
+          transactionId: `switch_${nodeInfo.id}`,
+          reason: `Cambio de nodo a ${nodeInfo.name || 'nuevo cajero'}`,
+          timestamp: new Date().toISOString()
+        });
+        this._saveState();
+        return;
+      }
+
+      // 2. Si se solicitó sincronización forzada (botón o actualización de credenciales):
+      if (forceSyncCash) {
+        this.isLocallyOverridden = false;
+        this.hasBootSynced = true;
+        const previous = this.cashAvailable;
+        this.cashAvailable = bankCash;
+        this.history.push({
+          type: 'central_sync',
+          amount: diff,
+          previousCash: previous,
+          newCash: this.cashAvailable,
+          transactionId: 'manual_sync',
+          reason: 'Sincronización forzada con Banco Central',
+          timestamp: new Date().toISOString()
+        });
+        this._saveState();
+        return;
+      }
+
+      // 3. Si es el arranque inicial en frío:
       if (!this.hasBootSynced) {
         this.hasBootSynced = true;
-        const diff = Math.abs(this.cashAvailable - nodeInfo.cash);
-        if (diff > 0.01) {
-          this.syncWithCentralCash(nodeInfo.cash, 'central_boot_sync', 'boot_sync', diff);
+        if (!this.isLocallyOverridden && diff > 0.01) {
+          const previous = this.cashAvailable;
+          this.cashAvailable = bankCash;
+          this.history.push({
+            type: 'boot_sync',
+            amount: diff,
+            previousCash: previous,
+            newCash: this.cashAvailable,
+            transactionId: 'central_boot_sync',
+            timestamp: new Date().toISOString()
+          });
         }
-      } else if (hasChanges) {
+        this._saveState();
+        return;
+      }
+
+      // 4. Si está en modo automático (sin override local) y el banco cambió de monto:
+      if (!this.isLocallyOverridden && diff > 0.01) {
+        const previous = this.cashAvailable;
+        this.cashAvailable = bankCash;
+        this.history.push({
+          type: 'central_sync',
+          amount: diff,
+          previousCash: previous,
+          newCash: this.cashAvailable,
+          transactionId: 'dynamic_sync',
+          reason: 'Alineación dinámica con Banco Central',
+          timestamp: new Date().toISOString()
+        });
+        this._saveState();
+        return;
+      }
+
+      if (hasChanges) {
         this._saveState();
       }
     } else if (hasChanges) {
@@ -277,6 +353,7 @@ class CashService {
       nodeId: this.nodeId || config.nodeId,
       nodeStatus: this.nodeStatus || 'active',
       cashAvailable: this.getCashAvailable(),
+      isLocallyOverridden: this.isLocallyOverridden,
       storagePath: this.storagePath,
       totalMovements: this.history.length,
       history: this.history.slice(-10).reverse()

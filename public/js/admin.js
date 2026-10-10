@@ -237,7 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
       deposit_received: { label: 'Depósito Recibido', class: 'deposit_received' },
       admin_adjustment: { label: 'Ajuste Manual', class: 'admin_adjustment' },
       boot_sync: { label: 'Sincronización Banco', class: 'sync' },
-      central_sync: { label: 'Sincronización Banco', class: 'sync' }
+      central_sync: { label: 'Sincronización Banco', class: 'sync' },
+      node_switch_sync: { label: 'Cambio de Nodo', class: 'sync' }
     };
 
     auditTableBody.innerHTML = history.map(item => {
@@ -361,6 +362,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (err) {
         alert('Error al actualizar el efectivo');
+      }
+    });
+  }
+
+  // Sincronizar bóveda con Banco Central
+  const btnSyncWithBank = document.getElementById('btnSyncWithBank');
+  if (btnSyncWithBank) {
+    btnSyncWithBank.addEventListener('click', async () => {
+      btnSyncWithBank.disabled = true;
+      btnSyncWithBank.textContent = 'Sincronizando...';
+      try {
+        const res = await fetch('/api/admin/sync', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          loadConfig();
+          alert(data.message || 'Bóveda sincronizada exitosamente con el Banco Central');
+        } else {
+          alert(data.error || 'No se pudo sincronizar con el Banco Central');
+        }
+      } catch (err) {
+        alert('Error de conexión con el cajero');
+      } finally {
+        btnSyncWithBank.disabled = false;
+        btnSyncWithBank.textContent = 'Sincronizar con Banco';
       }
     });
   }

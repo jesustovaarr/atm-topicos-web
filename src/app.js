@@ -13,6 +13,11 @@ app.use(express.urlencoded({ extended: true }));
 // Servir archivos estáticos del frontend del cajero
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Ruta para servir especificación OpenAPI
+app.get('/openapi.yaml', (req, res) => {
+  res.sendFile(path.join(__dirname, '../openapi.yaml'));
+});
+
 // Ruta de comprobación de estado
 app.get('/api/health', (req, res) => {
   res.status(200).json({

@@ -15,6 +15,7 @@ router.get('/atm/status', (req, res) => atmController.getStatus(req, res));
 router.post('/admin/login', (req, res) => adminController.login(req, res));
 router.get('/admin/config', (req, res) => adminController.getConfig(req, res));
 router.post('/admin/config', (req, res) => adminController.updateConfig(req, res));
+router.post('/admin/sync', (req, res) => adminController.syncNode(req, res));
 router.post('/admin/cash', (req, res) => adminController.adjustCash(req, res));
 router.get('/admin/test-connection', (req, res) => adminController.testConnection(req, res));
 

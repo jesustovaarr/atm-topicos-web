@@ -28,30 +28,46 @@ class AdminController {
    * Obtiene la configuración actual del cajero y el estado de la bóveda
    * GET /api/admin/config
    */
-  getConfig(req, res) {
-    const bankConf = bankService.getConfig();
-    const cashState = cashService.getState();
+  async getConfig(req, res) {
+    try {
+      if (bankService.apiKey && bankService.centralBankUrl && !config.mockBank) {
+        try {
+          const dynamicNode = await bankService.getNodeInfo();
+          if (dynamicNode) {
+            cashService.updateFromNodeInfo(dynamicNode);
+          }
+        } catch (e) {
+          // Continuar con el estado local si la llamada falla
+        }
+      }
 
-    res.status(200).json({
-      success: true,
-      nodeName: cashState.nodeName,
-      location: cashState.location,
-      nodeId: cashState.nodeId,
-      nodeStatus: cashState.nodeStatus,
-      centralBankUrl: bankConf.centralBankUrl,
-      hasApiKey: bankConf.hasApiKey,
-      maskedApiKey: bankConf.maskedApiKey,
-      cashAvailable: cashState.cashAvailable,
-      totalMovements: cashState.totalMovements,
-      history: cashState.history
-    });
+      const bankConf = bankService.getConfig();
+      const cashState = cashService.getState();
+
+      res.status(200).json({
+        success: true,
+        nodeName: cashState.nodeName,
+        location: cashState.location,
+        nodeId: cashState.nodeId,
+        nodeStatus: cashState.nodeStatus,
+        centralBankUrl: bankConf.centralBankUrl,
+        hasApiKey: bankConf.hasApiKey,
+        maskedApiKey: bankConf.maskedApiKey,
+        cashAvailable: cashState.cashAvailable,
+        isLocallyOverridden: cashState.isLocallyOverridden,
+        totalMovements: cashState.totalMovements,
+        history: cashState.history
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   }
 
   /**
    * Actualiza el API Key y la URL del Banco Central
    * POST /api/admin/config
    */
-  updateConfig(req, res) {
+  async updateConfig(req, res) {
     try {
       const { central_bank_url, api_key } = req.body;
 
@@ -64,15 +80,72 @@ class AdminController {
 
       bankService.updateConfig(central_bank_url, api_key);
 
+      // Al cambiar credenciales o nodo, consultar de inmediato al Banco Central y sincronizar el efectivo
+      let nodeInfo = null;
+      try {
+        if (bankService.apiKey && !config.mockBank) {
+          nodeInfo = await bankService.getNodeInfo();
+          if (nodeInfo) {
+            cashService.updateFromNodeInfo(nodeInfo, true);
+          }
+        }
+      } catch (err) {
+        console.warn('[AdminController.updateConfig] Error consultando nuevo nodo:', err.message);
+      }
+
+      const cashState = cashService.getState();
+
       return res.status(200).json({
         success: true,
-        message: 'Configuración de conectividad actualizada exitosamente',
-        config: bankService.getConfig()
+        message: nodeInfo
+          ? `Conectado exitosamente al nodo ${nodeInfo.name} ($${Number(cashState.cashAvailable).toFixed(2)})`
+          : 'Configuración de conectividad actualizada exitosamente',
+        config: bankService.getConfig(),
+        nodeInfo,
+        cashAvailable: cashState.cashAvailable
       });
     } catch (err) {
       return res.status(500).json({
         success: false,
         error: err.message
+      });
+    }
+  }
+
+  /**
+   * Fuerza la sincronización del efectivo y metadatos con el Banco Central
+   * POST /api/admin/sync
+   */
+  async syncNode(req, res) {
+    try {
+      if (!bankService.apiKey) {
+        return res.status(400).json({
+          success: false,
+          error: 'No hay un API Key configurado para sincronizar con el Banco Central'
+        });
+      }
+
+      const nodeInfo = await bankService.getNodeInfo();
+      if (!nodeInfo) {
+        return res.status(502).json({
+          success: false,
+          error: 'El Banco Central no devolvió información del nodo'
+        });
+      }
+
+      cashService.updateFromNodeInfo(nodeInfo, true);
+      const cashState = cashService.getState();
+
+      return res.status(200).json({
+        success: true,
+        message: `Bóveda sincronizada exitosamente con ${nodeInfo.name} ($${Number(cashState.cashAvailable).toFixed(2)})`,
+        nodeInfo,
+        cashAvailable: cashState.cashAvailable
+      });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: err.message || 'Error al sincronizar con el Banco Central'
       });
     }
   }
@@ -137,7 +210,7 @@ class AdminController {
       if (bankService.apiKey && !config.mockBank) {
         nodeInfo = await bankService.getNodeInfo();
         if (nodeInfo) {
-          cashService.updateFromNodeInfo(nodeInfo);
+          cashService.updateFromNodeInfo(nodeInfo, true);
         }
       }
     } catch (e) {
@@ -149,7 +222,8 @@ class AdminController {
         success: true,
         message: 'Conexión exitosa con el Banco Central',
         bankData: result.data,
-        nodeData: nodeInfo
+        nodeData: nodeInfo,
+        cashAvailable: cashService.getCashAvailable()
       });
     } else {
       return res.status(502).json({
